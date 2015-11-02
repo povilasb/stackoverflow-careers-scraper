@@ -1,0 +1,10 @@
+{
+	"name": "stackoverflow-careers-crawler",
+	"description": "StackOverflow careers page crawler",
+	"dependencies": {
+		"x-ray": "~2.0.2",
+		"underscore": "~1.8.3",
+		"mongodb": "~2.0.47",
+		"request": "~2.65.0"
+	}
+}
