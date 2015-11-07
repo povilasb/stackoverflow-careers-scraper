@@ -61,6 +61,7 @@ function onJobsFound(err, jobs) {
 		}
 
 		list[index]['link'] = stackoverflowBaseUrl + element['link'];
+		list[index]['found_at'] = new Date();
 	});
 
 	console.log('Job ads:', jobs);
