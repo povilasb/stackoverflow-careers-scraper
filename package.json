@@ -6,5 +6,9 @@
 		"underscore": "~1.8.3",
 		"mongodb": "~2.0.47",
 		"request": "~2.65.0"
+	},
+	"devDependencies": {
+		"mocha": "~2.3.3",
+		"chai": "~3.4.1"
 	}
 }
