@@ -46,13 +46,16 @@ function makeProxyBasicAuthHeader(username, password) {
 	return 'Basic ' + new Buffer(username + ':' + password).toString('base64');
 }
 
-function onJobsFound(err, jobs) {
-	if (err) {
-		console.log('Failed to find employers', err);
-		return;
-	}
+/**
+ * Returns an array of job records with time when job ad was found appended.
+ *
+ * @param scrapedJobs array of scraped jobs. It is not mutated.
+ * @return new array of job ads.
+ */
+function makeJobRecords(scrapedJobs, baseLinkUrl) {
+	var jobRecords = scrapedJobs.slice();
 
-	_.each(jobs, function(element, index, list) {
+	_.each(jobRecords, function(element, index, list) {
 		if ('company' in element) {
 			list[index]['company'] = element['company'].trim();
 		} else if ('company_' in element) {
@@ -60,9 +63,24 @@ function onJobsFound(err, jobs) {
 			delete list[index]['company_'];
 		}
 
-		list[index]['link'] = stackoverflowBaseUrl + element['link'];
+		if ('link' in list[index]) {
+			list[index]['link'] = baseLinkUrl + element['link'];
+		}
+
 		list[index]['found_at'] = new Date();
 	});
+
+	return jobRecords;
+}
+exports.makeJobRecords = makeJobRecords;
+
+function onJobsFound(err, scrapedJobs) {
+	if (err) {
+		console.log('Failed to find employers', err);
+		return;
+	}
+
+	jobs = makeJobRecords(scrapedJobs, stackoverflowBaseUrl);
 
 	console.log('Job ads:', jobs);
 	saveCompanies(jobs);
