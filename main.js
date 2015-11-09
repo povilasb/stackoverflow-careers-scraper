@@ -90,6 +90,9 @@ function makeSearchUrl(keyword) {
 	return searchBaseUrl + keyword;
 }
 
+/**
+ * Stores scraped companies to mongo db.
+ */
 function saveCompanies(companies) {
 	var url = 'mongodb://' + mongoDbAddr + ':27017/scraping_companies';
 	MongoClient.connect(url, function(err, db) {
