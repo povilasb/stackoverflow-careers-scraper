@@ -16,13 +16,11 @@ var proxy = {
 	url: 'http://proxy.com:8080',
 };
 
-function main() {
-	console.log('Started');
-
+function scrapeCompanies(searchKeyword) {
 	async.waterfall([
 		function(callback) {
 			request({
-				uri: makeSearchUrl('crawler'),
+				uri: makeSearchUrl(searchKeyword),
 				headers: {
 					'Proxy-Authorization':
 						makeProxyBasicAuthHeader(proxy.user, proxy.password),
@@ -48,6 +46,10 @@ function main() {
 			console.log('Successfully scraped companies.');
 		}
 	});
+}
+
+function main() {
+	scrapeCompanies('scraping');
 }
 
 function makeProxyBasicAuthHeader(username, password) {
