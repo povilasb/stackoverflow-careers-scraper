@@ -17,40 +17,51 @@ var proxy = {
 	url: 'http://proxy.com:8080',
 };
 
-function scrapeCompanies(searchKeyword) {
-	async.waterfall([
-		function(callback) {
-			request({
-				uri: makeSearchUrl(searchKeyword),
-				headers: {
-					'Proxy-Authorization':
-						makeProxyBasicAuthHeader(proxy.user, proxy.password),
-					'User-Agent':
-						'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'
-				},
-				proxy: proxy.url,
-			}, callback);
-		},
-		function(resp, body, callback) {
-			xray(body, '.-job', [{
-				company: '.employer',
-				// Sometimes class names start with '-'.
-				company_: '.-employer',
-				link: 'a.job-link@href',
-			}])(callback);
-		},
-		onJobsFound,
-	], function(err) {
-		if (err) {
-			console.log('Failed to scrape companies:', err);
-		} else {
-			console.log('Successfully scraped companies.');
-		}
-	});
+function StackoverflowCrawler(searchBaseUrl) {
+	this.searchBaseUrl = searchBaseUrl;
+	this.searchKeyword = 'scraping';
+
+	self = this;
+	this.getHtml = function(onResponse) {
+		request({
+			uri: makeSearchUrl(self.searchKeyword),
+			headers: {
+				'Proxy-Authorization':
+					makeProxyBasicAuthHeader(proxy.user, proxy.password),
+				'User-Agent':
+					'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'
+			},
+			proxy: proxy.url,
+		}, onResponse);
+	};
+
+	this.parseHtml = function(resp, body, onParsed) {
+		xray(body, '.-job', [{
+			company: '.employer',
+			// Sometimes class names start with '-'.
+			company_: '.-employer',
+			link: 'a.job-link@href',
+		}])(onParsed);
+	};
+
+	this.exec = function() {
+		async.waterfall([
+			this.getHtml,
+			this.parseHtml,
+			onJobsFound,
+		], function(err) {
+			if (err) {
+				console.log('Failed to scrape companies:', err);
+			} else {
+				console.log('Successfully scraped companies.');
+			}
+		});
+	};
 }
 
 function main() {
-	scrapeCompanies('scraping');
+	var crawler = new StackoverflowCrawler(searchBaseUrl);
+	crawler.exec();
 }
 
 function makeProxyBasicAuthHeader(username, password) {
