@@ -10,6 +10,7 @@ var async = require('async');
 var stackoverflowBaseUrl = 'http://careers.stackoverflow.com';
 var searchBaseUrl = stackoverflowBaseUrl + '/jobs?searchTerm=';
 var mongoDbAddr = 'localhost';
+// TODO: move to config.
 var proxy = {
 	user: 'proxy_user',
 	password: 'proxy_password',
