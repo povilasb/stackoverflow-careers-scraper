@@ -5,6 +5,7 @@ var xray = Xray();
 var _ = require('underscore');
 var MongoClient = require('mongodb').MongoClient;
 var request = require('request');
+var async = require('async');
 
 var stackoverflowBaseUrl = 'http://careers.stackoverflow.com';
 var searchBaseUrl = stackoverflowBaseUrl + '/jobs?searchTerm=';
@@ -18,27 +19,34 @@ var proxy = {
 function main() {
 	console.log('Started');
 
-	request({
-		uri: makeSearchUrl('crawler'),
-		headers: {
-			'Proxy-Authorization':
-				makeProxyBasicAuthHeader(proxy.user, proxy.password),
-			'User-Agent':
-				'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'
+	async.waterfall([
+		function(callback) {
+			request({
+				uri: makeSearchUrl('crawler'),
+				headers: {
+					'Proxy-Authorization':
+						makeProxyBasicAuthHeader(proxy.user, proxy.password),
+					'User-Agent':
+						'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'
+				},
+				proxy: proxy.url,
+			}, callback);
 		},
-		proxy: proxy.url,
-	}, function(err, resp, body) {
+		function(resp, body, callback) {
+			xray(body, '.-job', [{
+				company: '.employer',
+				// Sometimes class names start with '-'.
+				company_: '.-employer',
+				link: 'a.job-link@href',
+			}])(callback);
+		},
+		onJobsFound,
+	], function(err) {
 		if (err) {
-			console.log('Failed getting HTML:', err);
-			return;
+			console.log('Failed to scrape companies:', err);
+		} else {
+			console.log('Successfully scraped companies.');
 		}
-
-		xray(body, '.-job', [{
-			company: '.employer',
-			// Sometimes class names start with '-'.
-			company_: '.-employer',
-			link: 'a.job-link@href',
-		}])(onJobsFound);
 	});
 }
 
@@ -74,16 +82,14 @@ function makeJobRecords(scrapedJobs, baseLinkUrl) {
 }
 exports.makeJobRecords = makeJobRecords;
 
-function onJobsFound(err, scrapedJobs) {
-	if (err) {
-		console.log('Failed to find employers', err);
-		return;
-	}
-
+function onJobsFound(scrapedJobs, callback) {
 	jobs = makeJobRecords(scrapedJobs, stackoverflowBaseUrl);
 
 	console.log('Job ads:', jobs);
 	saveCompanies(jobs);
+
+	// success
+	callback(null);
 }
 
 function makeSearchUrl(keyword) {
@@ -95,24 +101,29 @@ function makeSearchUrl(keyword) {
  */
 function saveCompanies(companies) {
 	var url = 'mongodb://' + mongoDbAddr + ':27017/scraping_companies';
-	MongoClient.connect(url, function(err, db) {
-		if (err) {
-			console.log('Failed to connect to mongo');
-			return;
-		}
-		console.log("Connected correctly to server.");
 
-		db.collection('companies').insert(
-			companies,
-			{ keepGoing: true },
-			function(err, res) {
-				if (err && err.code != 11000) {
-					console.log('Failed to insert companies:', err);
+	async.waterfall([
+		function(callback) {
+			MongoClient.connect(url, callback);
+		},
+		function(db, callback) {
+			db.collection('companies').insert(
+				companies,
+				{ keepGoing: true },
+				function(err, insertedRecords) {
+					callback(err, db, insertedRecords);
 				}
+			);
+		}
+	], function(err, db, records) {
+		if (err && err.code != 11000) {
+			console.log('Failed to store scraped companies to DB:',
+				err);
+		} else {
+			console.log('Companies saved in DB');
+		}
 
-				db.close();
-			}
-		);
+		db.close();
 	});
 }
 
