@@ -17,13 +17,13 @@ var proxy = {
 	url: 'http://proxy.com:8080',
 };
 
-function StackoverflowCrawler(searchBaseUrl) {
+function StackoverflowCrawler(searchBaseUrl, http) {
 	this.searchBaseUrl = searchBaseUrl;
 	this.searchKeyword = 'scraping';
 
 	self = this;
 	this.getHtml = function(onResponse) {
-		request({
+		http.request({
 			uri: makeSearchUrl(self.searchKeyword),
 			headers: {
 				'Proxy-Authorization':
@@ -44,23 +44,39 @@ function StackoverflowCrawler(searchBaseUrl) {
 		}])(onParsed);
 	};
 
-	this.exec = function() {
+	this.saveCompanies = function (scrapedJobs, callback) {
+		jobs = makeJobRecords(scrapedJobs, stackoverflowBaseUrl);
+
+		console.log('Job ads:', jobs);
+		saveCompanies(jobs);
+
+		// success
+		callback(null);
+	};
+
+	this.onDone = function(err) {
+		if (err) {
+			console.log('Failed to scrape companies:', err);
+		} else {
+			console.log('Successfully scraped companies.');
+		}
+	};
+
+	this.exec = function(getHtml, parseHtml, saveCompanies) {
 		async.waterfall([
-			this.getHtml,
-			this.parseHtml,
-			onJobsFound,
-		], function(err) {
-			if (err) {
-				console.log('Failed to scrape companies:', err);
-			} else {
-				console.log('Successfully scraped companies.');
-			}
-		});
+			getHtml,
+			parseHtml,
+			saveCompanies,
+		], this.onDone);
 	};
 }
+exports.StackoverflowCrawler = StackoverflowCrawler;
 
 function main() {
-	var crawler = new StackoverflowCrawler(searchBaseUrl);
+	http = {
+		request: request,
+	};
+	var crawler = new StackoverflowCrawler(searchBaseUrl, http);
 	crawler.exec();
 }
 
@@ -95,16 +111,6 @@ function makeJobRecords(scrapedJobs, baseLinkUrl) {
 	return jobRecords;
 }
 exports.makeJobRecords = makeJobRecords;
-
-function onJobsFound(scrapedJobs, callback) {
-	jobs = makeJobRecords(scrapedJobs, stackoverflowBaseUrl);
-
-	console.log('Job ads:', jobs);
-	saveCompanies(jobs);
-
-	// success
-	callback(null);
-}
 
 function makeSearchUrl(keyword) {
 	return searchBaseUrl + keyword;
