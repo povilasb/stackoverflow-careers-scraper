@@ -1,4 +1,4 @@
-var app = require('../main.js');
+var stackoverflow = require('../stackoverflow.js');
 
 var chai = require('chai');
 chai.use(require('chai-spies'));
@@ -10,7 +10,7 @@ describe('StackoverflowCrawler', function() {
 			callback();
 		}
 	};
-	var crawler = new app.StackoverflowCrawler('http://dummy_url/',
+	var crawler = new stackoverflow.Crawler('http://dummy_url/',
 		http_mock);
 
 	describe('.getHtml', function() {
