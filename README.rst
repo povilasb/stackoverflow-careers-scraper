@@ -2,6 +2,8 @@
 About
 =====
 
+.. image:: https://travis-ci.org/povilasb/stackoverflow-careers-scraper.svg?branch=master
+
 This tool scrapes companies from Stackoverflow careers site.
 
 
