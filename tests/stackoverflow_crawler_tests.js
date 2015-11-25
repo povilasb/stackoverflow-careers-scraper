@@ -2,6 +2,8 @@ var stackoverflow = require('../stackoverflow.js');
 
 var chai = require('chai');
 chai.use(require('chai-spies'));
+chai.use(require('chai-string'));
+
 var expect = chai.expect;
 
 describe('StackoverflowCrawler', function() {
@@ -17,7 +19,7 @@ describe('StackoverflowCrawler', function() {
 		it('should call on response when finished', function() {
 			var onResponse = chai.spy();
 
-			crawler.getHtml(onResponse);
+			crawler.getHtml('dummy_uri', onResponse);
 
 			expect(onResponse).to.have.been.called();
 		});
@@ -27,7 +29,7 @@ describe('StackoverflowCrawler', function() {
 		it('should call .getHtml', function(done) {
 			var getHtmlCalled = false;
 
-			crawler.getHtml = function(callback) {
+			crawler.getHtml = function(uri, callback) {
 				getHtmlCalled = true;
 
 				callback(null, null, null);
@@ -44,11 +46,34 @@ describe('StackoverflowCrawler', function() {
 				done();
 			};
 
-			crawler.exec(
-				crawler.getHtml,
-				crawler.parseHtml,
-				crawler.saveCompanies
-			);
+			crawler.exec();
+		});
+
+		it(
+			'should call .getHtml with target URI ending with ' +
+			'search keyword',
+			function(done) {
+				var htmlUriUsed = null;
+
+				crawler.getHtml = function(uri, callback) {
+					htmlUriUsed = uri;
+
+					callback(null, null, null);
+				};
+				crawler.parseHtml = function(resp, body, callback) {
+					callback(null, null);
+				};
+				crawler.saveCompanies = function(scrapedAds, callback) {
+					callback(null);
+				};
+				crawler.onDone = function (){
+					expect(htmlUriUsed).to
+						.endsWith('search_keyword');
+
+					done();
+				};
+
+				crawler.exec('search_keyword');
 		});
 	});
 });

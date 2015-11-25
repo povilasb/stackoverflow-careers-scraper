@@ -18,12 +18,13 @@ var stackoverflowBaseUrl = 'http://careers.stackoverflow.com';
 
 function Crawler(searchBaseUrl, http) {
 	this.searchBaseUrl = searchBaseUrl;
-	this.searchKeyword = 'scraping';
 
-	self = this;
-	this.getHtml = function(onResponse) {
+	/**
+	 * Retrieve HTML page by the specified URI.
+	 */
+	this.getHtml = function(uri, onResponse) {
 		http.request({
-			uri: makeSearchUrl(self.searchBaseUrl, self.searchKeyword),
+			uri: uri,
 			headers: {
 				'Proxy-Authorization':
 					makeProxyBasicAuthHeader(proxy.user, proxy.password),
@@ -61,8 +62,19 @@ function Crawler(searchBaseUrl, http) {
 		}
 	};
 
-	this.exec = function(getHtml, parseHtml, saveCompanies) {
+	self = this;
+
+	/**
+	 * Executes the scraper.
+	 *
+	 * @param searchKeyword search stackoverflow careers with this keyword.
+	 */
+	this.exec = function(searchKeyword) {
+		var uri = makeSearchUrl(self.searchBaseUrl, searchKeyword)
 		async.waterfall([
+			function (callback) {
+				callback(null, uri);
+			},
 			this.getHtml,
 			this.parseHtml,
 			this.saveCompanies,
